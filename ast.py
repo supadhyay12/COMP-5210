@@ -68,5 +68,4 @@ def add_ReturnStatemenet(compoundStatementNode, returnStatement): # right now pr
 def add_Constant(constant):
     constantNode = {}
     constantNode[constant['contents']] = {}
-    return constantNode           
-    
+    return constantNode
