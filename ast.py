@@ -3,7 +3,7 @@ ast.py
 
 @Author - Shanti Upadhyay - spu0004@auburn.edu
 
-@Version - 08 NOV 22
+@Version - 15 NOV 22
 
 Generates AST from Parse Tree
 '''
@@ -23,18 +23,33 @@ def print_ast(ast):
 def add_funcDef(functionDefinition): # Begin descending down functionDefinition
     functionDefNode = {}
     compoundStatement = functionDefinition['compoundStatement']
-    functionDefNode[functionDefinition['ID']['contents']] = add_CompoundStatement(compoundStatement)
+    functionDefNode[functionDefinition['ID']['contents']] = add_CompoundStatement(None, compoundStatement)
     return functionDefNode
 
-def add_CompoundStatement(compoundStatement):
-    compoundStatementNode = {}
-    if compoundStatement['localDeclarations'] != None:
+def add_CompoundStatement(compoundStatementNode, compoundStatement):
+    if compoundStatementNode == None:
+        compoundStatementNode = {}
+    statementKeys = compoundStatement.keys()
+    if 'localDeclarations' in statementKeys and compoundStatement['localDeclarations'] != None:
         localDeclarations = compoundStatement['localDeclarations']
-        compoundStatementNode = add_LocalDeclarations(compoundStatementNode, localDeclarations) # modifying existing
-    primaryStatement = compoundStatement['primaryStatement']                                    # compound statement
-    returnStatement = primaryStatement['returnStatement']
-    compoundStatementNode = add_ReturnStatemenet(compoundStatementNode, returnStatement) # modifying existing
-    return compoundStatementNode                                                         # compound statement
+        compoundStatementNode = add_LocalDeclarations(compoundStatementNode, localDeclarations) 
+    if 'primaryStatement' in statementKeys and compoundStatement['primaryStatement'] != None:
+        primaryStatement = compoundStatement['primaryStatement']
+        if 'returnStatement' in primaryStatement.keys():
+            returnStatement = primaryStatement['returnStatement']
+            compoundStatementNode = add_ReturnStatemenet(compoundStatementNode, returnStatement)
+        elif 'assignmentExpression' in primaryStatement.keys():
+            assignmentExpression = primaryStatement['assignmentExpression']
+            identifier = assignmentExpression['identifier']
+            nodeKeys = compoundStatementNode.keys()
+            if identifier['contents'] in nodeKeys:
+                expression = assignmentExpression['expression']
+                compoundStatementNode[identifier['contents']] = add_Expression(expression)
+        else:
+            raise astException 
+    if compoundStatement['compoundStatement'] != None:
+        compoundStatementNode = add_CompoundStatement(compoundStatementNode, compoundStatement['compoundStatement'])  
+    return compoundStatementNode                                                        
 
 def add_LocalDeclarations(compoundStatementNode, localDeclarations): # this is recursive
     variableDeclaration = localDeclarations['variableDeclaration']
@@ -52,20 +67,31 @@ def add_LocalDeclarations(compoundStatementNode, localDeclarations): # this is r
     # constContents = constant['contents']
     # compoundStatementNode[idContents] = {}
     # compoundStatementNode[idContents][constContents] = {}
-    print("\n" + str(localDeclarations))  
-    print("\n" + str(variableDeclaration))
-    print("\n" + str(identifier))
-    print("\n" + str(contents))
-    print("\n" + str(nestedLocalDeclarations))
+    # print("\n" + str(localDeclarations))  
+    # print("\n" + str(variableDeclaration))
+    # print("\n" + str(identifier))
+    # print("\n" + str(contents))
+    # print("\n" + str(nestedLocalDeclarations))
     return compoundStatementNode
+
+def add_Expression(expression):
+    expressionNode = {}
+    expressionKeys = expression.keys()
+    constant = expression['constant']
+    if constant['type'] == 'constant':
+        expressionNode[constant['contents']] = {} 
+    if 'op' in expressionKeys:
+        expressionNode[expression['op']] = {} # This will be changed such that expressionNodes are lists instead of dictionaries
+        expressionNode[expression['expression']['constant']['contents']] = {}
+    return expressionNode
 
 def add_ReturnStatemenet(compoundStatementNode, returnStatement): # right now primary statement is 
     expression = returnStatement['contents']                      # only a return statement
-    constant = expression['contents']                             # no arithmetic yet
+    constant = expression['constant']                             # no arithmetic yet
     compoundStatementNode['return'] = add_Constant(constant)
     return compoundStatementNode   
 
 def add_Constant(constant):
     constantNode = {}
     constantNode[constant['contents']] = {}
-    return constantNode
+    return constantNode 
